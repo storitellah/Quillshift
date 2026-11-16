@@ -1,0 +1,38 @@
+{
+  "name": "quillshift",
+  "version": "1.0.0",
+  "description": "Convert and read documents on your own device. An installable, offline-first PWA.",
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "stamp": "node scripts/stamp.mjs",
+    "vendor": "node scripts/vendor.mjs && node scripts/coverage.cjs",
+    "icons": "node scripts/icons.cjs",
+    "test": "node scripts/stamp.mjs --check && node tests/run.mjs"
+  },
+  "keywords": [
+    "pwa",
+    "document-converter",
+    "pdf",
+    "docx",
+    "epub",
+    "offline",
+    "privacy"
+  ],
+  "author": "",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "dompurify": "^3.4.18",
+    "fflate": "^0.8.3",
+    "html-to-pdfmake": "^2.6.0",
+    "html2canvas": "^1.4.1",
+    "mammoth": "^1.13.0",
+    "marked": "^18.2.1",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^4.10.38",
+    "pdfmake": "^0.2.23",
+    "turndown": "^7.2.5",
+    "turndown-plugin-gfm": "^1.0.2"
+  }
+}

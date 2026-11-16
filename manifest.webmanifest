@@ -1,0 +1,61 @@
+{
+  "name": "Quillshift — convert & read documents",
+  "short_name": "Quillshift",
+  "description": "Convert Word, PDF, EPUB, Markdown, spreadsheets and images on your own device, then read them in a clean reader. Works offline. Nothing is uploaded.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f6f2ea",
+  "theme_color": "#f6f2ea",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["productivity", "utilities", "books"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "screenshots": [
+    { "src": "docs/screens/phone-convert.png", "sizes": "1170x2532", "type": "image/png", "form_factor": "narrow", "label": "Convert files on your device" },
+    { "src": "docs/screens/phone-reader.png", "sizes": "1170x2532", "type": "image/png", "form_factor": "narrow", "label": "Read what you convert" },
+    { "src": "docs/screens/phone-library.png", "sizes": "1170x2532", "type": "image/png", "form_factor": "narrow", "label": "Your library, offline" },
+    { "src": "docs/screens/desktop-convert.png", "sizes": "2560x1600", "type": "image/png", "form_factor": "wide", "label": "Quillshift on a computer" }
+  ],
+  "shortcuts": [
+    { "name": "Convert a file", "short_name": "Convert", "url": "./#/", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Open Library", "short_name": "Library", "url": "./#/library", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ],
+  "share_target": {
+    "action": "./share-target",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "files": [{
+        "name": "files",
+        "accept": ["application/pdf", ".pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx", "application/vnd.oasis.opendocument.text", ".odt", "application/epub+zip", ".epub", "text/html", ".html", "text/markdown", ".md", "text/plain", ".txt", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ".xlsx", "text/csv", ".csv", "application/json", ".json", "image/*"]
+      }]
+    }
+  },
+  "file_handlers": [{
+    "action": "./",
+    "accept": {
+      "application/pdf": [".pdf"],
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+      "application/vnd.oasis.opendocument.text": [".odt"],
+      "application/epub+zip": [".epub"],
+      "text/markdown": [".md", ".markdown"],
+      "text/plain": [".txt"],
+      "text/html": [".html", ".htm"],
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+      "text/csv": [".csv"],
+      "image/png": [".png"],
+      "image/jpeg": [".jpg", ".jpeg"],
+      "image/webp": [".webp"]
+    }
+  }],
+  "launch_handler": { "client_mode": "focus-existing" }
+}
