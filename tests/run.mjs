@@ -110,6 +110,26 @@ try {
     has(out.note, '4 files');
     has(await text((await run(out.key, 'txt')).key), 'Trail Notes');
   });
+  await test('PDF tools: compress, split, watermark', async () => {
+    const photo = await run((await run('photo.jpg', 'pdf')).key, 'compress', { level: 'strong' });
+    has(photo.note, 'smaller');
+    has((await run('report.pdf', 'split')).note, '4 single-page PDFs');
+    const marked = await run('report.pdf', 'stamp', { watermark: 'DRAFT', numbers: true });
+    // The watermark is rotated (and deliberately ignored by text extraction); the page number is not.
+    has(await text((await run((await run(marked.key, 'xlsx')).key, 'json')).key), '1 / 4');
+  });
+  await test('PDF → XLSX rebuilds table columns', async () => {
+    const csv = await text((await run((await run((await run('people.csv', 'pdf')).key, 'xlsx')).key, 'csv')).key);
+    has(csv, 'name,age,city,joined,notes'); has(csv, 'Linus,21,Helsinki,1991-08-25');
+  });
+  await test('Text recognition: scanned PDF → searchable PDF and Word; photo → text', async () => {
+    const searchable = await run('scan.pdf', 'ocr');
+    has(await text((await run(searchable.key, 'txt')).key), 'Quarterly Field Report');
+    const docx = await run('scan.pdf', 'docx');
+    has(docx.note, 'scan');
+    has(await text((await run(docx.key, 'txt')).key), 'Audit the fleet');
+    has(await text((await run('scan.jpg', 'txt')).key), 'Publish the safety review');
+  });
   await test('Formats are recognised from content alone', async () => {
     for (const [file, want] of [['report.docx', 'docx'], ['people.xlsx', 'xlsx'], ['report.pdf', 'pdf'], ['photo.png', 'png'], ['photo.jpg', 'jpg'], ['report.odt', 'odt'], ['report.html', 'html']]) {
       const got = await page.evaluate((k) => window.qs.sniff(k), file);
@@ -153,6 +173,27 @@ try {
     await app.reload();
     await app.waitForSelector('.reader[data-theme="sepia"]');
     assert((await app.evaluate(() => getComputedStyle(document.querySelector('.reader')).getPropertyValue('--r-size'))).trim() === '19px', 'text size was not remembered');
+  });
+  await test('Library shows previews; the organiser rotates and deletes pages', async () => {
+    await app.goto(`${ORIGIN}/#/library`);
+    await app.waitForSelector('.lib-item img.thumb');
+    await app.click('.lib-open >> text=notes.pdf');
+    await app.waitForSelector('.pdfpage canvas');
+    await app.click('[data-act="more"]');
+    await app.click('[data-a="convert"]');
+    await app.waitForSelector('[data-target="organize"]');
+    await app.setInputFiles('[data-picker]', [join(FX, 'report.pdf')]);
+    await app.waitForFunction(() => document.querySelectorAll('[data-target="organize"]').length >= 2);
+    await app.click('[data-item]:last-of-type [data-target="organize"]');
+    await app.waitForSelector('.org-page');
+    await app.click('.org-page >> nth=0'); await app.click('.organizer [data-act="right"]');
+    await app.click('.org-page >> nth=0'); await app.click('.org-page >> nth=3'); await app.click('.organizer [data-act="delete"]');
+    await app.click('.organizer [data-act="save"]');
+    await app.waitForSelector('.organizer', { state: 'detached' });
+    await app.waitForSelector('.result');
+    await app.goto(`${ORIGIN}/#/library`);
+    await app.waitForSelector('.lib-item');
+    has(await app.textContent('.lib-list'), '3 pages');
   });
   await test('Settings render and report storage', async () => {
     await app.goto(`${ORIGIN}/#/settings`);

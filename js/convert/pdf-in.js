@@ -103,6 +103,14 @@ async function pageLines(page, pageNo) {
     l.text = text.replace(/\s+/g, ' ').trim();
     l.x = Math.min(...l.parts.map((p) => p.x));
     l.end = Math.max(...l.parts.map((p) => p.end));
+    // Wide gaps on a line mark table columns.
+    l.cells = [];
+    let cell = null;
+    for (const p of l.parts) {
+      if (!p.str.trim()) continue;
+      if (!cell || p.x - cell.end > Math.max(p.size * 1.6, 11)) { cell = { x: p.x, end: p.end, text: p.str.trim() }; l.cells.push(cell); }
+      else { cell.text += (p.x - cell.end > p.size * 0.18 && !cell.text.endsWith(' ') ? ' ' : '') + p.str.trim(); cell.end = p.end; }
+    }
     delete l.parts;
   }
   return lines.filter((l) => l.text);
@@ -121,7 +129,7 @@ export async function pdfToHtml(file, onProgress = () => {}) {
       if (n % 8 === 0) await nextFrame();
     }
   } finally { pdf.destroy(); }
-  if (!lines.length) throw new Error('This PDF has no selectable text — it is probably a scan. Convert it to JPG or PNG images instead.');
+  if (!lines.length) throw Object.assign(new Error('This PDF has no selectable text — it is a scan.'), { code: 'NO_TEXT' });
 
   // Running heads, footers and page numbers: short lines in the page margins that repeat.
   const edge = (l) => (l.y < l.pageH * 0.055 || l.y > l.pageH * 0.95) && l.text.length < 90;
@@ -176,4 +184,41 @@ export async function pdfToHtml(file, onProgress = () => {}) {
   onProgress(1);
   const firstHeading = blocks.find((b) => b.type === 'h1' || b.type === 'h2');
   return { html, title: firstHeading && firstHeading.text.length <= 140 ? firstHeading.text : baseName(file.name), pages };
+}
+
+const AMOUNT = /^[-+(]?[$€£¥]?\s?\d{1,3}(,\d{3})*(\.\d+)?\)?$|^[-+]?\d+(\.\d+)?$/;
+
+/** Rebuild rows and columns from where text sits on each page: one sheet per page. */
+export async function pdfToBook(file, onProgress = () => {}) {
+  const pdf = await openPdf(file.blob);
+  const sheets = [];
+  try {
+    for (let n = 1; n <= pdf.numPages; n++) {
+      onProgress((n - 1) / pdf.numPages, `Reading page ${n} of ${pdf.numPages}`);
+      const page = await pdf.getPage(n);
+      const lines = (await pageLines(page, n)).sort((a, b) => b.y - a.y);
+      page.cleanup();
+      // Column positions: left edges that recur across rows, merged when a few points apart.
+      const starts = lines.filter((l) => l.cells.length > 1).flatMap((l) => l.cells.map((c) => c.x)).sort((a, b) => a - b);
+      const cols = [];
+      for (const x of starts) { if (!cols.length || x - cols[cols.length - 1] > 14) cols.push(x); }
+      const rows = lines.map((l) => {
+        const row = [];
+        for (const c of l.cells) {
+          let at = 0;
+          if (l.cells.length > 1) { for (let i = 0; i < cols.length; i++) if (c.x >= cols[i] - 7) at = i; }
+          else { const hit = cols.findIndex((x) => Math.abs(c.x - x) < 7); if (hit > 0) at = hit; } // a wrapped cell's second line
+          while (row[at] !== undefined) at++;
+          const plain = c.text.replace(/[$€£¥,\s]/g, '').replace(/^\((.*)\)$/, '-$1');
+          row[at] = AMOUNT.test(c.text) && plain !== '' && !Number.isNaN(Number(plain)) && !/^0\d/.test(plain) ? Number(plain) : c.text;
+        }
+        return Array.from(row, (v) => v ?? '');
+      });
+      const width = rows.reduce((m, r) => Math.max(m, r.length), 0);
+      if (rows.length) sheets.push({ name: `Page ${n}`, rows: rows.map((r) => [...r, ...Array(width - r.length).fill('')]) });
+      if (n % 8 === 0) await nextFrame();
+    }
+  } finally { pdf.destroy(); }
+  if (!sheets.length) throw Object.assign(new Error('This PDF has no selectable text — it is a scan.'), { code: 'NO_TEXT' });
+  return { sheets };
 }

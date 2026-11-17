@@ -16,3 +16,6 @@ Each is distributed under its own licence.
 | turndown | 7.2.5 | MIT |
 | turndown-plugin-gfm | 1.0.2 | MIT |
 | dompurify | 3.4.18 | (MPL-2.0 OR Apache-2.0) |
+| tesseract.js | 7.0.0 | Apache-2.0 |
+| tesseract.js-core | 7.0.0 | Apache-2.0 |
+| @tesseract.js-data/eng | 1.0.0 | MIT |

@@ -49,11 +49,19 @@ export const libs = {
     Object.assign(window.vfs, window.quillshiftMonoMetrics);
     return { pdfMake: window.pdfMake, htmlToPdfmake: window.htmlToPdfmake };
   }),
+  tesseract: () => script('ocr/tesseract.min.js').then(() => window.Tesseract),
   pdfjs: () => once('pdfjs', async () => {
     const m = await esm('pdfjs/pdf.min.mjs');
     m.GlobalWorkerOptions.workerSrc = url('pdfjs/pdf.worker.min.mjs');
     return m;
   }),
+};
+
+/** Text recognition (OCR). The worker, its WebAssembly core and the language data are all local files. */
+export const OCR_ASSETS = {
+  workerPath: url('ocr/worker.min.js'),
+  langPath: url('ocr'),
+  core: (simd) => url(simd ? 'ocr/tesseract-core-simd-lstm.wasm.js' : 'ocr/tesseract-core-lstm.wasm.js'),
 };
 
 export const PDFJS_ASSETS = {
@@ -68,5 +76,6 @@ export const PACKS = [
   { id: 'word', label: 'Word import', size: 0.4, detail: 'Reads DOCX files', files: ['mammoth.browser.min.js'] },
   { id: 'pdfwrite', label: 'PDF writer', size: 3.1, detail: 'Creates PDFs with real, selectable text', files: ['pdfmake.min.js', 'vfs_fonts.js', 'vfs_mono.js', 'html-to-pdfmake.js', 'pdf-lib.min.js', 'html2canvas.min.js'] },
   { id: 'pdfread', label: 'PDF reader', size: 1.8, detail: 'Opens, reads and extracts PDFs', files: ['pdfjs/pdf.min.mjs', 'pdfjs/pdf.worker.min.mjs'] },
+  { id: 'ocr', label: 'Text recognition', size: 7.0, detail: 'Reads scans and photos (OCR, English)', files: ['ocr/tesseract.min.js', 'ocr/worker.min.js', 'ocr/tesseract-core-simd-lstm.wasm.js', 'ocr/eng.traineddata.gz'] },
 ];
 export const packUrl = url;
