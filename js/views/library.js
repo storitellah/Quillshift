@@ -17,7 +17,7 @@ export async function mount(el) {
     const shown = q ? items.filter((m) => m.name.toLowerCase().includes(q) || m.format.includes(q)) : items;
     if (!shown.length) return `<p class="muted" style="padding:24px 4px;text-align:center">Nothing matches “${esc(query)}”.</p>`;
     return shown.map((m) => `<div class="card lib-item">
-      <button class="lib-open" data-open="${m.id}" aria-label="Read ${esc(m.name)}">${tile(m.format)}<div class="item-main"><div class="item-name">${esc(m.name)}</div><div class="item-meta">${fmtBytes(m.size)} · ${timeAgo(m.created)}</div>${m.progress > 0.01 && m.progress < 0.995 ? `<div class="lib-bar" title="${Math.round(m.progress * 100)}% read"><i style="width:${Math.round(m.progress * 100)}%"></i></div>` : ''}</div></button>
+      <button class="lib-open" data-open="${m.id}" aria-label="Read ${esc(m.name)}">${m.thumb ? `<img class="thumb" src="${m.thumb}" alt="" loading="lazy">` : tile(m.format)}<div class="item-main"><div class="item-name">${esc(m.name)}</div><div class="item-meta">${FORMATS[m.format]?.label || ''} · ${fmtBytes(m.size)}${m.pages ? ` · ${m.pages} page${m.pages === 1 ? '' : 's'}` : ''} · ${timeAgo(m.created)}</div>${m.snippet ? `<div class="snippet">${esc(m.snippet)}</div>` : ''}${m.progress > 0.01 && m.progress < 0.995 ? `<div class="lib-bar" title="${Math.round(m.progress * 100)}% read"><i style="width:${Math.round(m.progress * 100)}%"></i></div>` : ''}</div></button>
       <button class="iconbtn" data-more="${m.id}" aria-label="More actions for ${esc(m.name)}">${icon('more')}</button></div>`).join('');
   };
 
@@ -72,7 +72,8 @@ export async function mount(el) {
     const format = await detectFormat(f);
     if (!format) return toast('This file type cannot be opened yet.');
     try {
-      const meta = { id: uid(), name: f.name, format, mime: f.type || FORMATS[format].mime, size: f.size, created: Date.now(), from: null };
+      const { makePreview } = await import('../core/thumb.js');
+      const meta = { id: uid(), name: f.name, format, mime: f.type || FORMATS[format].mime, size: f.size, created: Date.now(), from: null, ...(await makePreview({ name: f.name, blob: f, format })) };
       await library.add(meta, f);
       location.hash = `#/read/${meta.id}`;
     } catch { toast('There is not enough storage to add this file.'); }

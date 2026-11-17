@@ -5,7 +5,10 @@ const fs = require('fs'); const path = require('path');
 const fontkit = require('@foliojs-fork/fontkit');
 
 
-const vfs = require('../vendor/vfs_fonts.js');
+// The package is "type": "module", so evaluate this classic script by hand.
+const mod = { exports: {} };
+new Function('module', fs.readFileSync(path.join(__dirname, '../vendor/vfs_fonts.js'), 'utf8'))(mod);
+const vfs = mod.exports;
 const font = fontkit.create(Buffer.from(vfs['Roboto-Regular.ttf'], 'base64'));
 const cps = [...font.characterSet].filter((c) => c >= 0x20).sort((a, b) => a - b);
 const ranges = [];

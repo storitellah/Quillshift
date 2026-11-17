@@ -17,6 +17,17 @@ async function get(key) {
 }
 
 window.qs = {
+  async ocr(key, mode) {
+    const O = await import('../js/convert/ocr.js');
+    const f = await get(key);
+    if (mode === 'pdf') {
+      const r = await O.toSearchablePdf([f]);
+      files.set(`${key}→ocr`, { name: 'ocr.pdf', blob: r.blob, format: 'pdf' });
+      return { key: `${key}→ocr`, words: r.words, size: r.blob.size };
+    }
+    return (f.format === 'pdf' ? await O.scannedPdfToHtml(f) : await O.imageToHtml(f)).html;
+  },
+
   async convert(key, target, opts = {}) {
     const out = await convert(await get(key), target, opts);
     const outKey = `${key}→${target}`;

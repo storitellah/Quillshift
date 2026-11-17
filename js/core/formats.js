@@ -27,16 +27,28 @@ export const FORMATS = {
 
 const TARGETS = {
   doc:   ['pdf', 'docx', 'epub', 'html', 'md', 'txt'],
-  pdf:   ['docx', 'txt', 'epub', 'html', 'md', 'jpg', 'png', 'pages'],
+  pdf:   ['docx', 'xlsx', 'txt', 'epub', 'html', 'md', 'jpg', 'png'],
   sheet: ['xlsx', 'csv', 'json', 'pdf', 'html', 'md'],
-  image: ['pdf', 'jpg', 'png', 'webp'],
+  image: ['pdf', 'jpg', 'png', 'webp', 'txt', 'docx'],
   archive: [],
 };
 
-/** Pseudo-targets that are operations rather than formats. */
+/** Tools: operations on a file rather than a change of format. */
 export const OPERATIONS = {
-  pages: { label: 'Pages', name: 'Extract pages to a new PDF', output: 'pdf' },
+  organize: { label: 'Organise', name: 'Reorder, rotate and delete pages', output: 'pdf', interactive: true },
+  compress: { label: 'Compress', name: 'Reduce the file size', output: 'pdf' },
+  ocr:      { label: 'Searchable', name: 'Recognise text (OCR) and make it selectable', output: 'pdf' },
+  pages:    { label: 'Extract', name: 'Keep only some pages', output: 'pdf' },
+  split:    { label: 'Split', name: 'One PDF per page, zipped', output: 'zip' },
+  stamp:    { label: 'Watermark', name: 'Add a watermark or page numbers', output: 'pdf' },
 };
+
+const TOOLS = {
+  pdf: ['organize', 'compress', 'ocr', 'pages', 'split', 'stamp'],
+  image: ['ocr'],
+};
+
+export const toolsFor = (formatId) => TOOLS[FORMATS[formatId]?.kind] || [];
 
 let webpEncode;
 export function canEncodeWebp() {

@@ -378,7 +378,8 @@ export async function mount(el, id) {
       body: `<div class="menu">
         <button data-a="save">${icon('download')}Save to device</button>
         ${share ? `<button data-a="share">${icon('share')}Share…</button>` : ''}
-        ${FORMATS[file.format]?.kind !== 'archive' ? `<button data-a="convert">${icon('convert')}Convert to another format</button>` : ''}
+        ${FORMATS[file.format]?.kind !== 'archive' ? `<button data-a="convert">${icon('convert')}Convert or use tools</button>` : ''}
+        ${file.format === 'pdf' ? `<button data-a="organise">${icon('pages')}Organise pages</button>` : ''}
         ${file.id ? `<button data-a="delete" class="danger">${icon('trash')}Remove from Library</button>` : ''}</div>
         <p class="small muted">${esc(FORMATS[file.format]?.name || '')} · ${fmtBytes(file.blob.size)}</p>`,
       onMount(body, close) {
@@ -389,6 +390,16 @@ export async function mount(el, id) {
           if (a === 'save') { saveBlob(file.blob, file.name); toast(`Saved ${file.name}`); }
           else if (a === 'share') shareBlob(file.blob, file.name);
           else if (a === 'convert') { await addFiles([new File([file.blob], file.name, { type: file.blob.type })]); location.hash = '#/'; }
+          else if (a === 'organise') {
+            const { openOrganizer } = await import('./organizer.js');
+            const blob = await openOrganizer(file);
+            if (!blob) return;
+            const { makePreview } = await import('../core/thumb.js');
+            const { uid, baseName } = await import('../core/util.js');
+            const out = { name: `${baseName(file.name)}-organised.pdf`, blob, format: 'pdf' };
+            const meta = { id: uid(), name: out.name, format: 'pdf', mime: 'application/pdf', size: blob.size, created: Date.now(), from: file.name, ...(await makePreview(out)) };
+            try { await library.add(meta, blob); location.hash = `#/read/${meta.id}`; } catch { saveBlob(blob, out.name); toast('Storage is full, so the new PDF was saved to your device instead.'); }
+          }
           else if (a === 'delete') { await library.remove(file.id); toast(`Removed ${file.name}`); location.hash = '#/library'; }
         });
       },

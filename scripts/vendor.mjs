@@ -25,10 +25,16 @@ const files = [
   ['turndown/lib/turndown.browser.umd.js', 'turndown.js'],
   ['turndown-plugin-gfm/dist/turndown-plugin-gfm.js', 'turndown-plugin-gfm.js'],
   ['dompurify/dist/purify.min.js', 'purify.min.js'],
+  ['tesseract.js/dist/tesseract.min.js', 'ocr/tesseract.min.js'],
+  ['tesseract.js/dist/worker.min.js', 'ocr/worker.min.js'],
+  ['tesseract.js-core/tesseract-core-simd-lstm.wasm.js', 'ocr/tesseract-core-simd-lstm.wasm.js'],
+  ['tesseract.js-core/tesseract-core-lstm.wasm.js', 'ocr/tesseract-core-lstm.wasm.js'],
+  ['@tesseract.js-data/eng/4.0.0_best_int/eng.traineddata.gz', 'ocr/eng.traineddata.gz'],
 ];
 
 rmSync(out(''), { recursive: true, force: true });
 mkdirSync(out('pdfjs'), { recursive: true });
+mkdirSync(out('ocr'), { recursive: true });
 for (const [from, to] of files) cpSync(nm(from), out(to), { recursive: true });
 
 // Strip sourceMappingURL comments so the browser does not request missing .map files.
@@ -48,7 +54,7 @@ for (const name of ['Courier', 'Courier-Bold', 'Courier-Oblique', 'Courier-BoldO
 }
 writeFileSync(out('vfs_mono.js'), `window.quillshiftMonoMetrics = ${JSON.stringify(afm)};\n`);
 
-const pkgs = ['fflate', 'mammoth', 'pdfjs-dist', 'pdfmake', 'html-to-pdfmake', 'pdf-lib', 'html2canvas', 'marked', 'turndown', 'turndown-plugin-gfm', 'dompurify'];
+const pkgs = ['fflate', 'mammoth', 'pdfjs-dist', 'pdfmake', 'html-to-pdfmake', 'pdf-lib', 'html2canvas', 'marked', 'turndown', 'turndown-plugin-gfm', 'dompurify', 'tesseract.js', 'tesseract.js-core', '@tesseract.js-data/eng'];
 const rows = pkgs.map((p) => {
   const j = JSON.parse(readFileSync(nm(`${p}/package.json`), 'utf8'));
   const lic = typeof j.license === 'string' ? j.license : (j.license?.type ?? 'see package');

@@ -13,7 +13,7 @@
   <img alt="PWA" src="https://img.shields.io/badge/PWA-installable-cf3a1e?style=flat-square">
   <img alt="Offline first" src="https://img.shields.io/badge/offline-first-1c1b29?style=flat-square">
   <img alt="No uploads" src="https://img.shields.io/badge/uploads-none-17754c?style=flat-square">
-  <img alt="App shell size" src="https://img.shields.io/badge/app%20shell-~67%20KB%20gzipped-1c1b29?style=flat-square">
+  <img alt="App shell size" src="https://img.shields.io/badge/app%20shell-~75%20KB%20gzipped-1c1b29?style=flat-square">
   <img alt="No build step" src="https://img.shields.io/badge/build%20step-none-6f6c80?style=flat-square">
   <img alt="MIT licence" src="https://img.shields.io/badge/licence-MIT-6f6c80?style=flat-square">
 </p>
@@ -33,7 +33,7 @@ Most "free online converters" upload your contract, payslip or manuscript to som
 
 - **Private by construction.** A Content Security Policy forbids the app from contacting any other origin. The test suite fails if a single off-origin request is made.
 - **Works offline.** Install it, switch on flight mode, keep converting.
-- **Light on storage.** The app itself is about 67 KB gzipped. Conversion engines are fetched only the first time you need them, and you can see and remove them in Settings.
+- **Light on storage.** The app itself is about 75 KB gzipped. Conversion engines are fetched only the first time you need them, and you can see and remove them in Settings.
 - **A reader, not just a converter.** Everything you convert opens in a comfortable reader with themes, type controls, a table of contents, read-aloud, and remembered position.
 
 ## What it converts
@@ -43,16 +43,37 @@ Most "free online converters" upload your contract, payslip or manuscript to som
 | **Word** `.docx`, **OpenDocument** `.odt` | PDF · DOCX · EPUB · HTML · Markdown · TXT |
 | **EPUB** e-books | PDF · DOCX · HTML · Markdown · TXT |
 | **Markdown**, **HTML**, **plain text** | PDF · DOCX · EPUB · HTML · Markdown · TXT |
-| **PDF** | DOCX · TXT · EPUB · HTML · Markdown · JPG / PNG page images · extract pages |
+| **PDF** | DOCX · XLSX · TXT · EPUB · HTML · Markdown · JPG / PNG page images |
+| **Scanned PDFs and photos of text** | Searchable PDF · DOCX · TXT, through on-device text recognition (OCR) |
 | **Excel** `.xlsx`, **CSV / TSV**, **JSON** | XLSX · CSV · JSON · PDF · HTML · Markdown |
-| **Images** PNG · JPG · WEBP · GIF · BMP · SVG (AVIF / HEIC where the browser can decode them) | PDF · JPG · PNG · WEBP |
+| **Images** PNG · JPG · WEBP · GIF · BMP · SVG (AVIF / HEIC where the browser can decode them) | PDF · JPG · PNG · WEBP · TXT · DOCX |
 | **Any mix of the above** | **One combined PDF**, in the order you choose |
 
 Options include page size, orientation, margins, page numbers, image quality, resize and page-image sharpness.
 
+### PDF tools
+
+The jobs people open Acrobat for, done on the device:
+
+| Tool | What it does |
+| --- | --- |
+| **Organise** | See every page as a thumbnail; reorder, rotate and delete, then save a new PDF |
+| **Compress** | Downsamples embedded photos at three strengths and rewrites the file compactly. Text and vector graphics are untouched |
+| **Searchable** | Recognises the text in a scan and layers it invisibly over the page, so it can be selected, searched and copied |
+| **Extract** | Keep a page range such as `1-3, 5, 8-` |
+| **Split** | One PDF per page, zipped |
+| **Watermark** | Diagonal text watermark and/or page numbers |
+| **Combine** | Merge PDFs, images, documents and sheets into one PDF |
+
+Converting a scanned PDF to Word or text recognises the text automatically. Results show a preview before you save them, and the Library shows a first-page thumbnail for every PDF and image.
+
 ### Honest limits
 
-- **PDF → Word/EPUB/text rebuilds the text**, headings and bullet lists from the PDF's geometry. It does not reproduce the original page layout, and scanned PDFs (pictures of pages) have no text to extract — there is no OCR.
+- **This is not Adobe's engine.** Acrobat's converter is proprietary and its cloud API would mean uploading your files. Quillshift covers the same everyday jobs with open-source engines running locally, and is less exact on complex layouts.
+- **PDF → Word/EPUB/text rebuilds the text**, headings and bullet lists from the PDF's geometry. It does not reproduce the original page layout, fonts or images. **PDF → Excel** rebuilds columns from where text sits on the page; merged and wrapped cells need checking.
+- **Text recognition is English-only** and works best on sharp, upright, printed text. Its engine is a 7 MB download the first time you use it. Always proof-read recognised text.
+- **Compress** shrinks JPEG photos inside a PDF. Text-only PDFs and PDFs with other image types will not get much smaller.
+- **Not included:** editing text inside a PDF, filling forms, signatures, and password protection or removal.
 - **PDF output comes in two styles.** *Text* gives small, selectable, searchable PDFs using an embedded Latin/Greek/Cyrillic font. Documents in other scripts (Chinese, Arabic, Hindi, emoji…) automatically use *Snapshot*, which draws each page exactly as the browser renders it — faithful, but the text is not selectable.
 - Legacy binary formats (`.doc`, `.xls`, `.ppt`) and DRM-protected e-books are not supported.
 - WEBP output and HEIC/AVIF input depend on the browser.
@@ -103,7 +124,7 @@ The included workflow (`.github/workflows/pages.yml`) runs the tests and publish
 ```bash
 npm install          # only needed for tests and for re-vendoring engines
 npm install playwright && npx playwright install chromium
-npm test             # 22 end-to-end checks in headless Chromium
+npm test             # 26 end-to-end checks in headless Chromium
 npm run stamp        # after editing css/, js/, icons/ or index.html
 ```
 
@@ -112,7 +133,7 @@ npm run stamp        # after editing css/, js/, icons/ or index.html
 ## How it works
 
 ```
-index.html ─ css/app.css ─ js/app.js            app shell (precached, ~67 KB gzipped)
+index.html ─ css/app.css ─ js/app.js            app shell (precached, ~75 KB gzipped)
                               │
         ┌─────────────────────┼─────────────────────┐
    views/convert         views/library          views/reader
@@ -122,7 +143,9 @@ index.html ─ css/app.css ─ js/app.js            app shell (precached, ~67 KB
    doc-in ─► sanitised HTML ─► pdf-out · docx-out · epub-out · doc-out
    sheet  ─► workbook       ─► xlsx · csv · json · html · md
    image  ─► canvas         ─► jpg · png · webp · pdf
-   pdf-in ─► page images / reflowed HTML        pdf-tools ─► merge · extract
+   pdf-in ─► page images / reflowed HTML / tables
+   pdf-tools ─► merge · extract · split · compress · watermark · organise
+   ocr    ─► recognised text / searchable PDF
                               │
                     vendor/  (lazy, cached on first use)
 ```
@@ -135,7 +158,7 @@ index.html ─ css/app.css ─ js/app.js            app shell (precached, ~67 KB
 ### Third-party engines
 
 Loaded on demand from `vendor/` (unmodified npm builds — see [`vendor/THIRD-PARTY.md`](vendor/THIRD-PARTY.md)):
-[pdf.js](https://github.com/mozilla/pdf.js) · [pdfmake](https://github.com/bpampuch/pdfmake) · [pdf-lib](https://github.com/Hopding/pdf-lib) · [mammoth](https://github.com/mwilliamson/mammoth.js) · [html2canvas](https://github.com/niklasvh/html2canvas) · [html-to-pdfmake](https://github.com/Aymkdn/html-to-pdfmake) · [fflate](https://github.com/101arrowz/fflate) · [marked](https://github.com/markedjs/marked) · [Turndown](https://github.com/mixmark-io/turndown) · [DOMPurify](https://github.com/cure53/DOMPurify)
+[pdf.js](https://github.com/mozilla/pdf.js) · [pdfmake](https://github.com/bpampuch/pdfmake) · [pdf-lib](https://github.com/Hopding/pdf-lib) · [mammoth](https://github.com/mwilliamson/mammoth.js) · [html2canvas](https://github.com/niklasvh/html2canvas) · [html-to-pdfmake](https://github.com/Aymkdn/html-to-pdfmake) · [Tesseract.js](https://github.com/naptha/tesseract.js) · [fflate](https://github.com/101arrowz/fflate) · [marked](https://github.com/markedjs/marked) · [Turndown](https://github.com/mixmark-io/turndown) · [DOMPurify](https://github.com/cure53/DOMPurify)
 
 ## Browser support
 

@@ -45,23 +45,72 @@ async function convertSheet(file, target, opts, onProgress) {
   }
 }
 
+const pct = (f) => `${Math.round(f * 100)}%`;
+
 async function convertPdf(file, target, opts, onProgress) {
-  if (target === 'pages') {
-    const r = await (await import('./pdf-tools.js')).extractPages(file.blob, opts.pages);
-    return { blob: r.blob, suffix: '-pages', note: `${r.count} page${r.count === 1 ? '' : 's'} extracted.` };
+  const T = () => import('./pdf-tools.js');
+  switch (target) {
+    case 'pages': {
+      const r = await (await T()).extractPages(file.blob, opts.pages);
+      return { blob: r.blob, suffix: '-pages', note: `${r.count} page${r.count === 1 ? '' : 's'} extracted.` };
+    }
+    case 'compress': {
+      const r = await (await T()).compressPdf(file.blob, opts.level, onProgress);
+      return { blob: r.blob, suffix: '-compressed', note: r.saved ? `${pct(r.saved)} smaller. Text and vector graphics are untouched.` : 'This PDF is already compact, so it was left unchanged.' };
+    }
+    case 'split': {
+      const r = await (await T()).splitPdf(file.blob, baseName(file.name), onProgress);
+      return { blob: r.blob, format: 'zip', suffix: '-pages', note: `${r.count} single-page PDFs, zipped.` };
+    }
+    case 'stamp':
+      return { blob: await (await T()).stampPdf(file.blob, { watermark: opts.watermark, numbers: opts.numbers }), suffix: '-marked' };
+    case 'ocr': {
+      const O = await import('./ocr.js');
+      try {
+        const r = await O.toSearchablePdf([file], onProgress);
+        return { blob: r.blob, suffix: '-searchable', note: `About ${r.words.toLocaleString()} words recognised. The pages look the same, and the text can now be selected and searched.` };
+      } finally { O.releaseOcr(); }
+    }
+    default:
   }
   const P = await import('./pdf-in.js');
   if (target === 'jpg' || target === 'png') {
     const r = await P.pdfToImages(file, target, opts, onProgress);
     return { blob: r.blob, format: r.format, note: r.pages > 1 ? `${r.pages} page images, zipped.` : null };
   }
-  const { html, title } = await P.pdfToHtml(file, (p, m) => onProgress(p * 0.7, m));
-  const out = await exportHtml(html, title, target, opts, (p, m) => onProgress(0.7 + p * 0.3, m));
-  return { ...out, note: out.note || 'Text and headings were rebuilt from the PDF; its original page layout is not kept.' };
+  if (target === 'xlsx') {
+    const book = await P.pdfToBook(file, (p, m) => onProgress(p * 0.9, m));
+    return { blob: await (await import('./sheet.js')).writeXlsx(book), note: 'Rows and columns were rebuilt from where the text sits on each page — one sheet per page. Check merged or wrapped cells.' };
+  }
+  let doc;
+  let scanned = false;
+  try {
+    doc = await P.pdfToHtml(file, (p, m) => onProgress(p * 0.7, m));
+  } catch (e) {
+    if (e.code !== 'NO_TEXT') throw e;
+    // A scan: read it with text recognition instead.
+    const O = await import('./ocr.js');
+    try { doc = await O.scannedPdfToHtml(file, (p, m) => onProgress(p * 0.7, m)); } finally { O.releaseOcr(); }
+    scanned = true;
+  }
+  const out = await exportHtml(doc.html, doc.title, target, opts, (p, m) => onProgress(0.7 + p * 0.3, m));
+  return { ...out, note: out.note || (scanned ? 'This PDF was a scan, so its text was read with text recognition. Proof-read the result.' : 'Text and headings were rebuilt from the PDF; its original page layout is not kept.') };
 }
 
 async function convertImage(file, target, opts, onProgress) {
   if (target === 'pdf') return { blob: await (await import('./pdf-tools.js')).imagesToPdf([file], opts, onProgress) };
+  if (target === 'ocr' || target === 'txt' || target === 'docx') {
+    const O = await import('./ocr.js');
+    try {
+      if (target === 'ocr') {
+        const r = await O.toSearchablePdf([file], onProgress);
+        return { blob: r.blob, suffix: '-searchable', note: `About ${r.words.toLocaleString()} words recognised and layered over the image as selectable text.` };
+      }
+      const { html, title } = await O.imageToHtml(file, (p, m) => onProgress(p * 0.9, m));
+      const out = await exportHtml(html, title, target, opts, () => {});
+      return { ...out, note: 'Text was read from the image with text recognition. Proof-read the result.' };
+    } finally { O.releaseOcr(); }
+  }
   return { blob: await (await import('./image.js')).convertImage(file, target, opts) };
 }
 
